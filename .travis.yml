@@ -1,0 +1,25 @@
+language: minimal
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - openssl aes-256-cbc -K $encrypted_cdbe4333a8fb_key -iv $encrypted_cdbe4333a8fb_iv
+    -in ./build/daemon.json.enc -out ./build/daemon.json -d
+  - sudo cp ./build/daemon.json /etc/docker/daemon.json
+  - sudo systemctl restart docker.service
+  - docker info
+
+env:
+  global:
+    - ALLOW_FAILURES=false
+
+stages:
+- name: prodfx
+
+jobs:
+  fast_finish: true
+  include:
+  - stage: prodfx
+    script: make
