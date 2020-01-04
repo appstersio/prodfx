@@ -1,0 +1,28 @@
+stack: test/healthcheck
+variables:
+  health_status:
+    type: string
+    default: "200"
+  health_location:
+    type: string
+    required: false
+services:
+  server:
+    build: .
+    image: krates/healthcheck-test
+    deploy:
+      wait_for_port: 8000
+    health_check:
+      protocol: http
+      port: 8000
+      # {% if health_location and health_location.size > 0 %}
+      uri: "/health?status=${health_status}&location=${health_location}"
+      # {% else %}
+      uri: "/health?status=${health_status}"
+      # {% endif %}
+      initial_delay: 2
+    links:
+      - ingress/lb
+    environment:
+      - KONTENA_LB_INTERNAL_PORT=8000
+      - KONTENA_LB_VIRTUAL_PATH=/

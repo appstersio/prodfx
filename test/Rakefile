@@ -1,0 +1,46 @@
+require 'rspec/core/rake_task'
+
+RSpec::Core::RakeTask.new(:spec)
+
+task :default  => :spec
+
+namespace :compose do
+  desc "setup compose"
+  task :setup => [:bundle, :setup_master, :setup_grid]
+
+  task :bundle do
+    sh "bundle install"
+  end
+
+  desc "setup compose master"
+  task :setup_master do
+    sh "krates master login --code #{ENV['INITIAL_ADMIN_CODE']} --name compose-e2e http://localhost:9292"
+  end
+
+  desc "setup compose grid"
+  task :setup_grid do
+    sh "krates grid create --token #{ENV['CI_KRATES_TOKEN']} e2e"
+    sh "while [ -z $(krates node ls -q) ] ; do echo \"... not yet ...\"; sleep 2; done"
+    sh "krates node ls"
+  end
+
+  desc "teardown compose"
+  task :teardown => [:teardown_grid, :teardown_master]
+
+  task :teardown_master do
+    sh "docker-compose stop api mongodb"
+    sh "docker-compose rm -v --force api mongodb"
+    sh "kontena master remove --force compose-e2e"
+  end
+
+  task :teardown_grid do
+    sh "docker-compose stop agent"
+    # Workaround https://github.com/docker/compose/issues/4548
+    #   The agent service must be stopped before using docker-compose run
+    # Workaround https://github.com/docker/compose/issues/4550
+    #   Strip trailing CR from the docker-compose run output
+    sh "kontena node rm --force $(docker-compose run --rm agent hostname | tr -d $'\r')"
+    sh "docker-compose rm -v --force agent"
+    sh "kontena grid rm --force e2e"
+  end
+end

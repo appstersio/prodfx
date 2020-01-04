@@ -1,0 +1,5 @@
+FROM ruby:2.4.3-slim
+
+ADD client.rb .
+
+CMD ["ruby", "client.rb"]
